@@ -78,8 +78,8 @@
     <p>2. 載入CSV（CSV僅下載要計算薪水的區間，不會自動過濾上半月份或下半月份）</p>
     <img id="photo-example" src="./example.png" alt="">
     <p>＊ 尚未放入國定假期計算式</p>
-    <p>＊ 目前累進是100杯開始計算，測試用先改30杯</p>
-    <p>＊ 計算式 435＊工作日 + 工作期間之工作日(CSV匯入為準)高於30杯時，每杯累進5元</p>
+    <p>＊ 計算式 435＊工作日 + 工作期間之工作日(CSV匯入為準)高於100杯時，每杯累進5元</p>
+    <p>＊ discount 100% 不計入加薪杯數</p>
     <hr>
     <label for="workdays">工作日</label>
     <input type="number" id="workdays" name="workdays" min="0" max="16" value="12" />
@@ -104,6 +104,7 @@
         <!-- 內容顯示 -->
     </div>
     <script>
+        const addSalaryCups = 100;
         // 清理舊資料
         document.getElementById("csvFileInput").addEventListener("click", function (event) {
             if (document.getElementById("csvFileInput").value !== '') {
@@ -129,10 +130,13 @@
                             return {
                                 date: values[0].replace(/"/g, ''),
                                 quantity: values[11].replace(/"/g, ''),
+                                discount: values[19].replace(/"/g, ''),
                             };
                         }
 
                     });
+
+
 
                     // 创建一个对象来存储日期和对应的总数量
                     const dateTotals = {};
@@ -140,11 +144,15 @@
                     // 利用日期抓總数量
                     // 拿物件來跑
                     for (const item of dataArray) {
+                        
                         if (item && item.date && item.quantity) {
                             const date = item.date;
                             const quantity = parseInt(item.quantity);
+                            const discount = parseInt(item.discount);
+                            console.log("discount",discount);
 
-                            if (!isNaN(quantity)) {
+                            // 銷售數是數字並且並非百分百折扣，才計入杯數
+                            if (!isNaN(quantity) && discount !== 100) {
                                 if (dateTotals[date]) {
                                     dateTotals[date] += quantity;
                                 } else {
@@ -167,7 +175,7 @@
                     const addSalaryData = dateAndSale.reduce((acc, item) => {
                         const key = Object.keys(item)[0];
                         const saleCup = Object.values(item)[0];
-                        const increaseSalary = (saleCup - 30) * 5;
+                        const increaseSalary = (saleCup - addSalaryCups) * 5;
 
                         acc[key] = {
                             saleCup,
@@ -243,12 +251,12 @@
                     // addSalary2Element.textContent = `底薪${salaryResult2.salary} + 加薪${salaryResult2.increaseSalary} = 本次薪水${salaryResult2.salary + salaryResult2.increaseSalary}`;
                     // addSalary2.appendChild(addSalary2Element);
 
-
+                    console.log("dateTotals",dateTotals);
                     // 結果顯示在網頁上
                     const resultDiv = document.getElementById("result");
                     for (const date in dateTotals) {
                         const totalQuantity = dateTotals[date];
-                        const increaseSalary = dateTotals[date] > 30 ? (dateTotals[date] - 30) * 5 : 0
+                        const increaseSalary = dateTotals[date] > addSalaryCups ? (dateTotals[date] - addSalaryCups) * 5 : 0
                         const resultElement = document.createElement("p");
                         resultElement.textContent = `Date: ${date}, Total Quantity: ${totalQuantity}, addSalary ${increaseSalary}`;
 
